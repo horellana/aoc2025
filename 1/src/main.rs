@@ -15,9 +15,15 @@ struct Dial {
 
 #[derive(Debug)]
 #[derive(PartialEq)]
+#[derive(Clone, Copy)]
 enum DialDirections {
     Left,
     Right
+}
+
+struct DialMovement {
+    direction: DialDirections,
+    steps: u16
 }
 
 fn move_dial(dial: Dial, direction: DialDirections, steps: u16) -> Dial {
@@ -85,31 +91,41 @@ fn parse_line(input: String) -> Result<(DialDirections, u16), DialErrors>{
     }
 }
 
-fn main() -> Result<(), DialErrors> {
-    let mut dial = Dial {
-        position: 50
-    };
+fn count_zeros(movements: Vec<DialMovement>) -> u32 {
+    let mut dial = Dial { position: 50 };
+    let mut count: u32 = 0;
 
-    let mut count = 0;
+    for movement in movements {
+        for _ in 0..movement.steps {
+            dial = move_dial(dial, movement.direction, 1);
 
-    for line in io::stdin().lines() {
-        match line {
-            Ok(line) => {
-                let (direction, steps) = parse_line(line)?;
-                let new_dial = move_dial(dial.clone(), direction, steps);
-
-                if new_dial.position == 0 {
-                    count = count + 1;
-                }
-
-                dial = new_dial;
-            },
-            Err(_error) => {
-                return Err(DialErrors::FailedToReadStdin)
+            if dial.position == 0 {
+                count = count + 1;
             }
         }
     }
 
+    return count;
+}
+
+fn main() -> Result<(), DialErrors> {
+    let movements = io::stdin()
+        .lines()
+        .map(|line| {
+            match line {
+                Ok(line) => parse_line(line),
+                Err(_) => Err(DialErrors::FailedToReadStdin),
+            }
+        })
+        .map(|dial_movement_tuple| {
+            match dial_movement_tuple {
+                Ok((direction, steps)) => Ok(DialMovement { direction: direction, steps: steps }),
+                Err(_) => Err(DialErrors::UnexpectedInput("".to_string()))
+            }
+        })
+        .collect::<Result<Vec<DialMovement>, DialErrors>>()?;
+
+    let count = count_zeros(movements);
     println!("{}", count);
     Ok(())
 }
@@ -117,6 +133,70 @@ fn main() -> Result<(), DialErrors> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    struct CountZeroTestCase {
+        dial: Dial,
+        input: Vec<DialMovement>,
+        output: u32
+    }
+
+    #[test]
+    fn test_count_zeros() {
+        let test_cases = vec![
+            CountZeroTestCase {
+                dial: Dial { position: 50 },
+                input: vec![
+                    DialMovement {
+                        direction: DialDirections::Left,
+                        steps: 68
+                    },
+                    DialMovement {
+                        direction: DialDirections::Left,
+                        steps: 30
+                    },
+                    DialMovement {
+                        direction: DialDirections::Right,
+                        steps: 48 
+                    },
+                    DialMovement {
+                        direction: DialDirections::Left,
+                        steps: 5 
+                    },
+                    DialMovement {
+                        direction: DialDirections::Right,
+                        steps: 60 
+                    },
+                    DialMovement {
+                        direction: DialDirections::Left,
+                        steps: 55
+                    },
+                    DialMovement {
+                        direction: DialDirections::Left,
+                        steps: 1
+                    },
+                    DialMovement {
+                        direction: DialDirections::Left,
+                        steps: 99
+                    },
+                    DialMovement {
+                        direction: DialDirections::Right,
+                        steps: 14
+                    },
+                    DialMovement {
+                        direction: DialDirections::Left,
+                        steps: 82
+                    }
+                ],
+                output: 6,
+            },
+        ];
+
+
+        for test in test_cases {
+            let got = count_zeros(test.input);
+            assert_eq!(got, test.output)
+        }
+    }
 
     struct ParseLineTestCase {
         input: String,
