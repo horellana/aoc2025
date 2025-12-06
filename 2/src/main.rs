@@ -59,13 +59,8 @@ fn parse_range_list(input: &str) -> Result<Vec<String>, ParseRangeListError> {
 }
 
 fn is_invalid_id(input: &str) -> bool {
-    let bytes = input.as_bytes();
-
-    if bytes.len() % 2 != 0 {
-        return false;
-    }
-
-    return bytes[0..bytes.len() / 2] == bytes[bytes.len() / 2..bytes.len()];
+    let s = format!("{}{}", input, input);
+    return (&s[1..s.len() - 1]).contains(input);
 }
 
 fn scan_range(range: Range) -> impl Iterator<Item=u64> {
@@ -140,12 +135,12 @@ mod tests {
             },
             ScanRangeTestCase {
                 input: Range { start: 95, end: 115 },
-                expected_output: vec![99],
+                expected_output: vec![99, 111],
                 description: "95-115"
             },
             ScanRangeTestCase {
                 input: Range { start: 998, end: 1012 },
-                expected_output: vec![1010],
+                expected_output: vec![999, 1010],
                 description: "998-1012"
             },
             ScanRangeTestCase {
@@ -159,6 +154,11 @@ mod tests {
                 description: "222220-222224"
             },
             ScanRangeTestCase {
+                input: Range { start: 1698522, end: 1698528 },
+                expected_output: vec![],
+                description: "1698522-1698528"
+            },
+            ScanRangeTestCase {
                 input: Range { start: 446443, end: 446449 },
                 expected_output: vec![446446],
                 description: "446443-446449"
@@ -170,8 +170,18 @@ mod tests {
             },
             ScanRangeTestCase {
                 input: Range { start: 565653, end: 565659 },
-                expected_output: vec![],
+                expected_output: vec![565656],
                 description: "565653-565659"
+            },
+            ScanRangeTestCase {
+                input: Range { start: 824824821, end: 824824827 },
+                expected_output: vec![824824824],
+                description: "824824821-824824827"
+            },
+            ScanRangeTestCase {
+                input: Range { start: 2121212118, end: 2121212124 },
+                expected_output: vec![2121212121],
+                description: "2121212118-2121212124"
             }
         ];
 
