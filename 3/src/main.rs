@@ -203,29 +203,43 @@ const INPUT: &[&'static str] = &[
     "4353732444512234333345235313431332543323433323223443373336442333335434932835543135333462635233343534",
 ];
 
-fn find_largest_joltage(input: &str) -> Option<String> {
-    if input.len() < 2 {
+// 811111111119
+// 0  8
+// 1  1
+// 2  1
+// 3  1
+// 4  1
+// 5  1
+// 6  1
+// 7  1
+// 8  1
+// 9  1
+// 10 1
+// 11 1
+// 12 1
+// 13 1
+// 14 9
+
+fn find_largest_joltage(input: &str, size: usize) -> Option<String> {
+    if input.len() < size {
         return None;
     }
 
     let chars: Vec<char> = input.chars().collect();
-    let mut largest_idx = 0;
 
-    for idx in 0..chars.len() - 1 {
-        if chars[idx] > chars[largest_idx] {
-            largest_idx = idx;
+    let mut stack: Vec<char> = Vec::with_capacity(size);
+    let mut skips_available = chars.len() - size;
+
+    for char in chars {
+        while stack.len() > 0 && skips_available > 0 && char > stack[stack.len() - 1] {
+            stack.pop();
+            skips_available = skips_available - 1;
         }
+
+        stack.push(char);
     }
-
-    let mut smallest_idx = largest_idx + 1;
-
-    for idx in largest_idx + 1..chars.len() {
-        if chars[idx] > chars[smallest_idx] {
-            smallest_idx = idx;
-        }
-    }
-
-    return Some(format!("{}{}", chars[largest_idx].to_string(), chars[smallest_idx].to_string()));
+        
+    return Some(stack.iter().take(size).collect());
 }
 
 #[derive(Debug)]
@@ -238,17 +252,15 @@ fn main() -> Result<(), FindLargestJoltageErrors> {
     let sum = INPUT
         .iter()
         .map(|input| {
-            find_largest_joltage(input)
+            find_largest_joltage(input, 12)
         })
         .map(|s| {
             s.map_or(Err(FindLargestJoltageErrors::InvalidInputError),
                 |s| {
-                    s.parse::<u32>().or(Err(FindLargestJoltageErrors::ToNumberError))
+                    s.parse::<u64>().or(Err(FindLargestJoltageErrors::ToNumberError))
                 })
         })
-        .try_fold(0 as u32, |acc, n| {
-            n.map(|n| { n + acc })
-        });
+        .sum::<Result<u64, _>>();
 
     println!("sum: {}", sum?);
 
@@ -270,28 +282,28 @@ mod test {
         let test_cases = vec![
             FindLargestJoltageTestCase {
                 input: "987654321111111",
-                expected_output: Some("98".to_string()),
+                expected_output: Some("987654321111".to_string()),
                 description: "Example 1"
             },
             FindLargestJoltageTestCase {
                 input: "811111111111119",
-                expected_output: Some("89".to_string()),
+                expected_output: Some("811111111119".to_string()),
                 description: "Example 2"
             },
             FindLargestJoltageTestCase {
                 input: "234234234234278",
-                expected_output: Some("78".to_string()),
+                expected_output: Some("434234234278".to_string()),
                 description: "Example 3"
             },
             FindLargestJoltageTestCase {
                 input: "818181911112111",
-                expected_output: Some("92".to_string()),
+                expected_output: Some("888911112111".to_string()),
                 description: "Example 4"
             }
         ];
 
         for test in test_cases {
-            let got = find_largest_joltage(test.input);
+            let got = find_largest_joltage(test.input, 12);
             assert_eq!(got, test.expected_output, "{}", test.description);
         }
     }
