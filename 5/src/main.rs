@@ -1,7 +1,11 @@
+use std::cmp;
 use std::num::ParseIntError;
+
+use itertools::Itertools;
 
 const INPUT: &str = include_str!("../input.txt");
 
+#[derive(Clone)]
 #[derive(Debug)]
 #[derive(PartialEq)]
 struct Range {
@@ -85,12 +89,45 @@ fn get_fresh_ingredients(input: &State) -> impl Iterator<Item=u128> {
         })
 }
 
+// [
+//     Range { start: 3, end: 5 },
+//     Range { start: 10, end: 14 },
+//     Range { start: 12, end: 18 },
+//     Range { start: 16, end: 20 },
+// ]
+// => "Compressed" Ranges
+// (3, 5)
+// (10, 20)
+fn count_fresh_ingredients(ranges: &[Range]) -> u128 {
+    let merged_ranges = ranges
+        .to_vec()
+        .into_iter()
+        .sorted_by_key(|r| r.start)
+        .coalesce(|prev, curr| {
+            if curr.start <= prev.end {
+                Ok(Range { start: prev.start, end: cmp::max(prev.end, curr.end) })
+            } else {
+                Err((prev, curr))
+            }
+        });
+
+    let mut count = 0;
+
+    for range in merged_ranges {
+        let dv = (range.end + 1) - range.start;
+        count = count + dv;
+    }
+    
+    return count;
+}
+
 fn main() -> Result<(), LoadInputErrors<'static>> {
     let state = load_input(INPUT)?;
-    println!("{:?}", state);
-
     let fresh_ingredients = get_fresh_ingredients(&state);
-    println!("Fresh ingredients: {}", fresh_ingredients.count());
+
+    println!("Fresh ingredients: {}, Available Fresh ingredients: {}",
+        fresh_ingredients.count(),
+        count_fresh_ingredients(&state.ranges));
 
     return Ok(());
 }
@@ -130,6 +167,27 @@ mod test {
         }
     }
 
+    #[test]
+    fn test_sort_ranges() {
+        let expected = [
+            Range { start: 1, end: 20 },
+            Range { start: 1, end: 10 },
+            Range { start: 2, end: 5 }
+        ];
+    }
+
+    #[test]
+    fn test_list_fresh_ingredients() {
+        let expected = 14;
+
+        let Ok(input) = load_input(EXAMPLE_INPUT)
+            else { todo!(); };
+
+        let got = count_fresh_ingredients(&input.ranges);
+
+        assert_eq!(got, expected, "{}", "Correctly list all fresh ingredients");
+    }
+    
     #[test]
     fn test_load_input() {
         let expected = Ok(State {
